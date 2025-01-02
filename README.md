@@ -29,6 +29,7 @@
 
 ## 项目结构
 
+```
 project/
 ├── frontend/ # 前端项目目录
 │ ├── src/
@@ -52,6 +53,7 @@ project/
 │ └── requirements.txt
 │
 └── docker/ # Docker配置文件
+```
 
 ## 核心功能模块
 
