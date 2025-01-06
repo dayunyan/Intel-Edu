@@ -15,6 +15,7 @@ export default function LoginPage() {
             if (isLogin) {
                 const response = await auth.login(values.username, values.password);
                 document.cookie = `token=${response.data.access_token}; path=/`;
+                localStorage.setItem('userId', response.data.id);
                 localStorage.setItem('userRole', response.data.role);
                 localStorage.setItem('userName', response.data.username);
                 message.success('登录成功');

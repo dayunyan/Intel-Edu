@@ -23,13 +23,13 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
   }, []);
 
   const menuItems = [
-    {
+    ...(userRole !== 'teacher' ? [{
       key: 'dashboard',
       icon: <DashboardOutlined />,
       label: '数据大盘',
       onClick: () => router.push('/dashboard'),
-    },
-   ...(userRole!== 'STUDENT'? [{
+    }] : []),
+    ...(userRole !== 'student' ? [{
       key: 'students',
       icon: <UserOutlined />,
       label: '学生管理',

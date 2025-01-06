@@ -2,6 +2,11 @@
 import random
 from sqlalchemy.orm import Session
 from datetime import datetime, date, time
+import sys
+import os
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+
 from app.models.user import User, Student, Teacher, UserRole, Gender
 from app.models.curriculum import Subject, Book, Chapter, Section
 from app.models.student_data import StudentBehavior, StudentProgress

@@ -52,7 +52,9 @@ def get_student_statistics_30days(
     student_id: int,
     db: Session = Depends(get_db),
 ):
+    print(student_id)
     studata_service = StudentDataService(db)
     statistics = studata_service.get_student_statistics_by_time(student_id, 30)
+    print(statistics)
     
     return StudentStatistics(**statistics)

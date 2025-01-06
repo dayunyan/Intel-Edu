@@ -1,3 +1,4 @@
+import json
 from sqlalchemy.orm import Session
 from typing import List, Dict
 from datetime import datetime, timedelta
@@ -37,12 +38,13 @@ class StudentDataService:
             StudentProgress.student_id == student_id,
             StudentProgress.updated_at >= start_date
         ).all()
-        # 获取最近的progress中的mistake记录
-        mistakes = {}
+        
         subjects = {}
         books = {}
         chapters = {}
         sections = {}
+        mistakes = {} # 获取最近的progress中的mistake记录
+        questions = {} # 获取最近的progress中的question记录
         for p in progress:
             if p.subject_id not in subjects:
                 subjects[p.subject_id] = self.db.query(Subject).filter(Subject.id == p.subject_id).first().name
@@ -52,15 +54,15 @@ class StudentDataService:
                 chapters[p.chapter_id] = self.db.query(Chapter).filter(Chapter.id == p.chapter_id).first().name
             if p.section_id not in sections:
                 sections[p.section_id] = self.db.query(Section).filter(Section.id == p.section_id).first().name
+            if f'{subjects[p.subject_id]}-{books[p.book_id]}-{chapters[p.chapter_id]}-{sections[p.section_id]}' not in mistakes:
+                mistakes[f'{subjects[p.subject_id]}-{books[p.book_id]}-{chapters[p.chapter_id]}-{sections[p.section_id]}'] = []
+            if f'{subjects[p.subject_id]}-{books[p.book_id]}-{chapters[p.chapter_id]}-{sections[p.section_id]}' not in questions:
+                questions[f'{subjects[p.subject_id]}-{books[p.book_id]}-{chapters[p.chapter_id]}-{sections[p.section_id]}'] = []
             for m in p.mistakes:
-                if m.timestamp >= start_date:
+                if datetime.strptime(m["timestamp"], '%Y-%m-%d %H:%M:%S') >= start_date:
                     mistakes[f'{subjects[p.subject_id]}-{books[p.book_id]}-{chapters[p.chapter_id]}-{sections[p.section_id]}'].append(m)
-        
-        # 获取最近的progress中的question记录
-        questions = {}
-        for p in progress:
             for q in p.questions:
-                if q.timestamp >= start_date:
+                if datetime.strptime(q["timestamp"], '%Y-%m-%d %H:%M:%S') >= start_date:
                     questions[f'{subjects[p.subject_id]}-{books[p.book_id]}-{chapters[p.chapter_id]}-{sections[p.section_id]}'].append(q)
         
 
@@ -83,9 +85,9 @@ class StudentDataService:
             statistics[behavior.behavior_type] += 1
         return statistics
 
-    def _progress_statistics(self, progress_records: List[StudentProgress]) -> List[Dict]:
+    def _progress_statistics(self, progress_records: List[StudentProgress]) -> Dict:
         if not progress_records:
-            return []
+            return {}
         progress_count = len(progress_records)
         completeness_avg = sum(progress.completeness for progress in progress_records) / progress_count
         duration_avg = sum(progress.duration for progress in progress_records) / progress_count

@@ -5,12 +5,12 @@ from app.core.auth import get_password_hash
 
 def serialize_date(obj):
     """序列化日期对象为字符串"""
-    if isinstance(obj, date):
-        return obj.strftime('%Y-%m-%d')
-    if isinstance(obj, time):
-        return obj.strftime('%H:%M:%S')
     if isinstance(obj, datetime):
         return obj.strftime('%Y-%m-%d %H:%M:%S')
+    if isinstance(obj, time):
+        return obj.strftime('%H:%M:%S')
+    if isinstance(obj, date):
+        return obj.strftime('%Y-%m-%d')
     return obj
 
 # 基础用户数据

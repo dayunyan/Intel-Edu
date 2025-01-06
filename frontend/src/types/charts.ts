@@ -9,12 +9,12 @@ export interface ProgressStatistic {
 }
 
 export interface MistakeStatistic {
-    position: string;
+    key: string;
     count: number;
 }
 
 export interface QuestionStatistic {
-    position: string;
+    key: string;
     count: number;
 }
 

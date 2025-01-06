@@ -76,13 +76,6 @@ export const students = {
   getProgress: (id: number) => api.get(`/student-data/progress/${id}`),
 };
 
-export const subjects = {
-  getAll: () => api.get('/subjects'),
-  getById: (id: number) => api.get(`/subjects/${id}`),
-  create: (data: any) => api.post('/subjects', data),
-  update: (id: number, data: any) => api.put(`/subjects/${id}`, data),
-};
-
 export const studentData = {
   getStatistics: (studentId: number, days: number): Promise<ApiResponse<StudentStatistic>> => 
     api.get(`/student-data/statistics/${days}days/${studentId}`),

@@ -76,7 +76,8 @@ class StudentStatistics(BaseModel):
     behavior_count: int
     progress_count: int
     behavior_statistics: Dict[str, int]
-    progress_statistics: List[Dict]
+    progress_statistics: Dict[str, float]
     mistakes_statistics: Dict[str, int]
     questions_statistics: Dict[str, int]
+
 
