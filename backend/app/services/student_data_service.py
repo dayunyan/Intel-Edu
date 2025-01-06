@@ -2,6 +2,7 @@ from sqlalchemy.orm import Session
 from typing import List, Dict
 from datetime import datetime, timedelta
 from app.models.student_data import StudentBehavior, StudentProgress
+from app.models.curriculum import Subject, Book, Chapter, Section
 from app.schemas.student_data import BehaviorCreate, ProgressCreate
 
 class StudentDataService:
@@ -22,7 +23,7 @@ class StudentDataService:
         self.db.refresh(db_progress)
         return db_progress
 
-    def get_student_statistics(self, student_id: int, days: int = 30) -> Dict:
+    def get_student_statistics_by_time(self, student_id: int, days: int = 30) -> Dict:
         start_date = datetime.now() - timedelta(days=days)
         
         # 获取行为统计
@@ -31,36 +32,86 @@ class StudentDataService:
             StudentBehavior.timestamp >= start_date
         ).all()
         
-        # 获取学习进度
+        # 获取progress
         progress = self.db.query(StudentProgress).filter(
             StudentProgress.student_id == student_id,
-            StudentProgress.created_at >= start_date
+            StudentProgress.updated_at >= start_date
         ).all()
+        # 获取最近的progress中的mistake记录
+        mistakes = {}
+        subjects = {}
+        books = {}
+        chapters = {}
+        sections = {}
+        for p in progress:
+            if p.subject_id not in subjects:
+                subjects[p.subject_id] = self.db.query(Subject).filter(Subject.id == p.subject_id).first().name
+            if p.book_id not in books:
+                books[p.book_id] = self.db.query(Book).filter(Book.id == p.book_id).first().name
+            if p.chapter_id not in chapters:
+                chapters[p.chapter_id] = self.db.query(Chapter).filter(Chapter.id == p.chapter_id).first().name
+            if p.section_id not in sections:
+                sections[p.section_id] = self.db.query(Section).filter(Section.id == p.section_id).first().name
+            for m in p.mistakes:
+                if m.timestamp >= start_date:
+                    mistakes[f'{subjects[p.subject_id]}-{books[p.book_id]}-{chapters[p.chapter_id]}-{sections[p.section_id]}'].append(m)
+        
+        # 获取最近的progress中的question记录
+        questions = {}
+        for p in progress:
+            for q in p.questions:
+                if q.timestamp >= start_date:
+                    questions[f'{subjects[p.subject_id]}-{books[p.book_id]}-{chapters[p.chapter_id]}-{sections[p.section_id]}'].append(q)
         
 
         return {
             "behavior_count": len(behaviors),
             "progress_count": len(progress),
-            "average_score": sum(p.score for p in progress) / len(progress) if progress else 0,
-            "attention_rate": self._calculate_attention_rate(behaviors),
-            "weak_points": self._identify_weak_points(progress)
+            "behavior_statistics": self._behavior_statistics(behaviors),
+            "progress_statistics": self._progress_statistics(progress),
+            "mistakes_statistics": self._mistakes_statistics(mistakes),
+            "questions_statistics": self._questions_statistics(questions)
         }
 
-    def _calculate_attention_rate(self, behaviors: List[StudentBehavior]) -> float:
+    def _behavior_statistics(self, behaviors: List[StudentBehavior]) -> Dict:
         if not behaviors:
-            return 0.0
-        attention_time = sum(b.duration for b in behaviors if b.behavior_type == "attention")
-        total_time = sum(b.duration for b in behaviors)
-        return attention_time / total_time if total_time > 0 else 0
+            return {}
+        statistics = {}
+        for behavior in behaviors:
+            if behavior.behavior_type not in statistics:
+                statistics[behavior.behavior_type] = 0
+            statistics[behavior.behavior_type] += 1
+        return statistics
 
-    def _identify_weak_points(self, progress_records: List[StudentProgress]) -> List[Dict]:
-        weak_points = []
-        for record in progress_records:
-            if record.score < 60:
-                weak_points.append({
-                    "subject": record.subject,
-                    "chapter": record.chapter,
-                    "section": record.section,
-                    "score": record.score
-                })
-        return weak_points 
+    def _progress_statistics(self, progress_records: List[StudentProgress]) -> List[Dict]:
+        if not progress_records:
+            return []
+        progress_count = len(progress_records)
+        completeness_avg = sum(progress.completeness for progress in progress_records) / progress_count
+        duration_avg = sum(progress.duration for progress in progress_records) / progress_count
+        return {
+            "completeness_avg": completeness_avg,
+            "duration_avg": duration_avg,
+        }
+    
+    def _mistakes_statistics(self, mistakes: Dict[str, List[Dict]]) -> Dict:
+        if not mistakes:
+            return {}
+        
+        mistakes_statistics = {}
+        for key, value in mistakes.items():
+            if key not in mistakes_statistics:
+                mistakes_statistics[key] = 0
+            mistakes_statistics[key] += len(value)
+        return mistakes_statistics
+
+    def _questions_statistics(self, questions: Dict[str, List[Dict]]) -> Dict:
+        if not questions:
+            return {}
+        questions_statistics = {}
+        for key, value in questions.items():
+            if key not in questions_statistics:
+                questions_statistics[key] = 0
+            questions_statistics[key] += len(value)
+        return questions_statistics
+    

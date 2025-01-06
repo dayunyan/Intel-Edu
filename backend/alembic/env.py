@@ -10,6 +10,7 @@ from app.models.curriculum import Subject, Chapter, Section, Book
 from app.models.student_data import StudentBehavior, StudentProgress
 from app.models.classes import Class
 from app.models.analysis import AnalysisResult
+from app.models.scale import TestPaper, TestPaperRecord
 
 # 这行很重要，确保所有模型都被导入后再设置
 target_metadata = Base.metadata

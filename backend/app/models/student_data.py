@@ -1,6 +1,56 @@
 from sqlalchemy import Column, Integer, String, Float, ForeignKey, JSON, DateTime
 from .base import Base, TimeStampMixin
 
+""" Template for details in StudentBehavior
+#TODO: 需要根据实际情况修改
+{
+    "behavior_type": "reading" | "writing" | "hand-raising" | "using phone" | "sleeping" | "speaking",
+    "timestamp": "2024-10-08 10:00:00",
+    "details": {
+        "location": "classroom",
+        "time": "in-class" | "after-class"
+        "positive-or-negative": "positive" | "negative"
+    }
+}
+"""
+
+""" JSON template for mistakes in StudentProgress
+#TODO: 需要根据实际情况修改
+[
+    {
+        "timestamp": "2024-10-08 10:00:00",
+        "test_question": "1+1=?",
+        "correct_answer": "2",
+        "mistake_answer": "3",
+        "details": {
+            "type": "calculation" | "understanding" | "memory" | "application" | "analysis" | "evaluation",
+            "description": "计算错误" | "理解错误" | "记忆错误" | "应用错误" | "分析错误" | "评价错误"
+        }
+    }
+]
+"""
+
+""" JSON template for questions in StudentProgress
+#TODO: 需要根据实际情况修改
+[
+    {
+        "timestamp": "2024-10-08 10:00:00",
+        "student_question": "1+1=?",
+        "ai_response": "2",
+        "history":[
+            {
+                "timestamp": "2024-10-08 10:00:00",
+                "student_question": "1+1=?",
+                "ai_response": "2"
+            }
+        ]
+        "details": {
+            "summary": "Firstly, the student asked the question, then the AI answered the question, and finally the student asked the question again."
+        }
+    }
+]
+"""
+
 
 class StudentBehavior(Base, TimeStampMixin):
     __tablename__ = "student_behaviors"

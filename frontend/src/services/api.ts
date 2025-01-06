@@ -68,15 +68,16 @@ export const subjects = {
   update: (id: number, data: any) => api.put(`/subjects/${id}`, data),
 };
 
+export const studentData = {
+  getStatistics: (studentId: number, days: number): Promise<ApiResponse<StudentStatistic>> => 
+    api.get(`/student-data/statistics/${days}days/${studentId}`),
+};
+
 export const analysis = {
-  getReportAnalysis: (studentId: number): Promise<ApiResponse<ReportAnalysisData>> => 
-    api.get(`/analysis/report/${studentId}`),
-  
-  getBehaviorAnalysis: (studentId: number): Promise<ApiResponse<BehaviorAnalysis>> => 
-    api.get(`/analysis/behavior/${studentId}`),
-  
-  getKnowledgeAnalysis: (studentId: number): Promise<ApiResponse<KnowledgeAnalysis[]>> => 
-    api.get(`/analysis/knowledge/${studentId}`),
+  getAnalysisData: (studentId: number, days: number): Promise<ApiResponse<AnalysisData>> => 
+    api.get(`/analysis/report/${days}days/${studentId}`),
+  getAnalysisTrend: (studentId: number, days: number): Promise<ApiResponse<AnalysisTrendData>> => 
+    api.get(`/analysis/trend/${days}days/${studentId}`),
 };
 
 export const messages = {

@@ -18,13 +18,14 @@ class KnowledgeAnalysis(BaseModel):
     knowledge_trend: List[Dict[str, Any]]
 
 
-class StudyReport(BaseModel):
+class StudentReport(BaseModel):
     student_id: int
-    report_date: datetime
-    behavior_analysis: BehaviorAnalysis
-    knowledge_analysis: List[KnowledgeAnalysis]
-    overall_evaluation: str
-    suggestions: List[str]
+    analysis_type: str
+    analysis_timestamp: datetime
+    analysis_report: str
+    evaluation_metrics: Dict[str, Any]
 
     class Config:
         from_attributes = True
+
+

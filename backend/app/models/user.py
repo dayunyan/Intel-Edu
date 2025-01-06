@@ -1,6 +1,8 @@
 from sqlalchemy import Column, Integer, String, Enum, ForeignKey
 from .base import Base, TimeStampMixin
 import enum
+from sqlalchemy import event
+from sqlalchemy.schema import DDL
 
 
 class UserRole(str, enum.Enum):
@@ -23,6 +25,27 @@ class User(Base, TimeStampMixin):
     hashed_password = Column(String)
     role = Column(Enum(UserRole))
     full_name = Column(String)
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        event.listen(
+            User.__table__, 
+            'before_create',
+            self.create_enum_type
+        )
+
+    def create_enum_type(self):
+        return DDL(
+            """
+            DO $$ 
+            BEGIN 
+                IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'userrole') THEN
+                    CREATE TYPE userrole AS ENUM ('ADMIN', 'TEACHER', 'STUDENT');
+                END IF;
+            END
+            $$;
+            """
+        )
 
 class Teacher(Base, TimeStampMixin):
     __tablename__ = "teachers"

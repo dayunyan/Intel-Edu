@@ -71,3 +71,12 @@ class QuestionInDB(QuestionBase):
 
     class Config:
         from_attributes = True
+
+class StudentStatistics(BaseModel):
+    behavior_count: int
+    progress_count: int
+    behavior_statistics: Dict[str, int]
+    progress_statistics: List[Dict]
+    mistakes_statistics: Dict[str, int]
+    questions_statistics: Dict[str, int]
+

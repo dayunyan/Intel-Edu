@@ -1,9 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException
+from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.models.student_data import StudentBehavior
 from app.core.auth import oauth2_scheme
-from datetime import datetime
+from app.services.student_data_service import StudentDataService
+from app.schemas.student_data import StudentStatistics
 
 router = APIRouter()
 
@@ -25,17 +27,32 @@ def create_behavior(
     db.refresh(behavior)
     return behavior
 
-@router.get("/statistics/{student_id}")
-def get_student_statistics(
+@router.get("/statistics/1days/{student_id}", response_model=StudentStatistics)
+def get_student_statistics_1days(
     student_id: int,
     db: Session = Depends(get_db),
-    token: str = Depends(oauth2_scheme)
 ):
-    behavior_count = db.query(StudentBehavior).filter(
-        StudentBehavior.student_id == student_id
-    ).count()
+    studata_service = StudentDataService(db)
+    statistics = studata_service.get_student_statistics_by_time(student_id, 1)
     
-    return {
-        "behavior_count": behavior_count,
-        "progress_count": 0  # 这里需要实现进度统计
-    }
+    return StudentStatistics(**statistics)
+
+@router.get("/statistics/7days/{student_id}", response_model=StudentStatistics)
+def get_student_statistics_7days(
+    student_id: int,
+    db: Session = Depends(get_db),
+):
+    studata_service = StudentDataService(db)
+    statistics = studata_service.get_student_statistics_by_time(student_id, 7)
+    
+    return StudentStatistics(**statistics)
+
+@router.get("/statistics/30days/{student_id}", response_model=StudentStatistics)
+def get_student_statistics_30days(
+    student_id: int,
+    db: Session = Depends(get_db),
+):
+    studata_service = StudentDataService(db)
+    statistics = studata_service.get_student_statistics_by_time(student_id, 30)
+    
+    return StudentStatistics(**statistics)
