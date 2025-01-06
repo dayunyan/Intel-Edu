@@ -1,5 +1,4 @@
 'use client';
-
 import { Layout, Menu, Avatar, Dropdown } from 'antd';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -30,7 +29,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
       label: '数据大盘',
       onClick: () => router.push('/dashboard'),
     },
-    ...(userRole !== 'STUDENT' ? [{
+   ...(userRole!== 'STUDENT'? [{
       key: 'students',
       icon: <UserOutlined />,
       label: '学生管理',
@@ -58,21 +57,23 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
-      <Header style={{ padding: '0 24px', background: '#fff' }} className="flex justify-between items-center">
-        <h1 className="text-xl font-bold">教育辅助系统</h1>
-        <Dropdown menu={{
-          items: [{
-            key: 'logout',
-            icon: <LogoutOutlined />,
-            label: '退出登录',
-            onClick: handleLogout
-          }]
-        }}>
-          <div className="flex items-center cursor-pointer">
-            <Avatar icon={<UserOutlined />} className="mr-2" />
-            <span>{userName}</span>
-          </div>
-        </Dropdown>
+      <Header style={{ padding: '0 24px', background: '#fff', height: '64px' }} className="flex justify-between items-center">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', height: '100%' }}>
+          <h1 style={{ marginRight: '16px', textAlign: 'center', margin:"0 0px"}} className="text-xl font-bold">教育辅助系统</h1>
+          <Dropdown menu={{
+            items: [{
+              key: 'logout',
+              icon: <LogoutOutlined />,
+              label: '退出登录',
+              onClick: handleLogout
+            }]
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+              <Avatar icon={<UserOutlined />} style={{ marginRight: '8px' }} />
+              <span>{userName}</span>
+            </div>
+          </Dropdown>
+        </div>
       </Header>
       <Layout>
         <Sider width={200} theme="light">
