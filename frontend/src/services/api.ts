@@ -16,6 +16,21 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+// 响应拦截器：处理未授权的情况
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      // 清除本地存储的认证信息
+      document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT';
+      localStorage.clear();
+      // 重定向到登录页
+      window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  }
+);
+
 interface ApiResponse<T> {
   data: T;
   message: string;

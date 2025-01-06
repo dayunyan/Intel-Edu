@@ -1,8 +1,14 @@
-module.exports = {
-  // config options here
+/** @type {import('next').NextConfig} */
+const nextConfig = {
   images: {
-    unoptimized: false,  // 如果不需要Next.js对图片进行优化，可以设置为true，可根据实际需求决定是否添加这行
-    loader: 'default',
-    path: '',  // 设置为空字符串，这样相对路径就可以直接写文件名等形式，而不用以 / 开头了
-},
-};
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'via.placeholder.com',
+      }
+    ],
+    unoptimized: true,  // 禁用图片优化，直接使用原始图片
+  },
+}
+
+module.exports = nextConfig 

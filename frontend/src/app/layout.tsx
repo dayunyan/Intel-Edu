@@ -1,6 +1,6 @@
 import { Inter } from 'next/font/google';
 import { AntdRegistry } from '@ant-design/nextjs-registry';
-import MainLayout from '@/components/layout/MainLayout';
+import AuthGuard from '../components/auth/AuthGuard';
 import './globals.css';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -19,7 +19,7 @@ export default function RootLayout({
     <html lang="zh">
       <body className={inter.className}>
         <AntdRegistry>
-          <MainLayout>{children}</MainLayout>
+          <AuthGuard>{children}</AuthGuard>
         </AntdRegistry>
       </body>
     </html>

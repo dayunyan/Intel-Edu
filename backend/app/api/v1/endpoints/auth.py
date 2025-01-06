@@ -11,7 +11,7 @@ from app.core.auth import (
 )
 from app.core.config import settings
 from app.db.session import get_db
-from app.models.user import User
+from app.models.user import User, UserRole, Student, Teacher
 from app.schemas.user import UserCreate, Token, UserInDB
 
 router = APIRouter()
@@ -27,12 +27,28 @@ def register_user(user: UserCreate, db: Session = Depends(get_db)):
         username=user.username,
         email=user.email,
         hashed_password=get_password_hash(user.password),
-        role=user.role,
+        role=getattr(UserRole, user.role),
         full_name=user.full_name,
     )
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
+    
+    print(user.role)
+    # 根据不同角色，在不同表中创建数据
+    if user.role == "STUDENT":
+        db.add(Student(id=db_user.id,
+                       username=user.username,
+                       full_name=user.full_name,
+                       email=user.email,
+                       ))
+    elif user.role == "TEACHER":
+        db.add(Teacher(id=db_user.id,
+                       username=user.username,
+                       full_name=user.full_name,
+                       email=user.email,
+                       ))
+    db.commit()
     return db_user
 
 
