@@ -10,6 +10,7 @@ export default function LoginPage() {
     const router = useRouter();
     const [isLogin, setIsLogin] = useState(true);
 
+
     const onFinish = async (values: any) => {
         try {
             if (isLogin) {
@@ -19,7 +20,7 @@ export default function LoginPage() {
                 localStorage.setItem('userRole', response.data.role);
                 localStorage.setItem('userName', response.data.username);
                 message.success('登录成功');
-                router.push('/dashboard');
+                router.push(response.data.role === 'teacher' ? '/students' : '/dashboard');
             } else {
                 await auth.register({
                   ...values,

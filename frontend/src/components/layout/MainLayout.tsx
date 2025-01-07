@@ -1,5 +1,5 @@
 'use client';
-import { Layout, Menu, Avatar, Dropdown } from 'antd';
+import { Layout, Menu, Avatar, Dropdown, message } from 'antd';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import {
@@ -45,7 +45,14 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
       key: 'analysis',
       icon: <BarChartOutlined />,
       label: '数据分析',
-      onClick: () => router.push('/analysis'),
+      onClick: () => {
+        if (userRole === 'student') {
+          const userId = localStorage.getItem('userId') || '';
+          router.push(`/analysis/${userId}`);
+        } else if (userRole === 'teacher') {
+          message.info('请前往学生管理-选择一个学生查看分析');
+        }
+      },
     },
   ];
 
@@ -79,7 +86,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
         <Sider width={200} theme="light">
           <Menu
             mode="inline"
-            defaultSelectedKeys={['dashboard']}
+            defaultSelectedKeys={userRole !== 'teacher' ? ['dashboard'] : ['students']}
             items={menuItems}
             className="h-full"
           />
