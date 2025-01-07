@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Tabs, message } from 'antd';
+import { Card, Tabs, message } from 'antd';
 import TimeTable from '@/components/Schedule/TimeTable';
 import CurriculumTree from '@/components/Curriculum/CurriculumTree';
 import { curriculum } from '@/services/api';
@@ -37,8 +37,7 @@ export default function CoursesPage() {
   };
 
   return (
-    <div className="container mx-auto p-4">
-      <h2 className="text-2xl font-bold mb-6">课程管理</h2>
+    <Card title={<span style={{ fontSize: '20px' }}>课程管理</span>} className="m-4">
       <Tabs defaultActiveKey="schedule">
         <TabPane tab="课程表" key="schedule">
           <TimeTable loading={loading} data={schedule} />
@@ -56,6 +55,6 @@ export default function CoursesPage() {
           </div>
         </TabPane>
       </Tabs>
-    </div>
+    </Card>
   );
 } 

@@ -44,9 +44,7 @@ export default function AnalysisPage({ params }: { params: { id: string } }) {
   if (!data) return null;
 
   return (
-    <div className="p-4">
-      <h2 className="text-2xl font-bold mb-6">学生分析报告</h2>
-      
+    <Card title={<span style={{ fontSize: '20px' }}>学生分析报告</span>} className="m-4">
       <Tabs defaultActiveKey="metrics">
         <TabPane tab="能力指标" key="metrics">
           {Object.entries(METRIC_GROUPS as Record<string, any>).map(([key, group]) => (
@@ -76,6 +74,6 @@ export default function AnalysisPage({ params }: { params: { id: string } }) {
           {data.analysis_report}
         </div>
       </Card>
-    </div>
+    </Card>
   );
 } 

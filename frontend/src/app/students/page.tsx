@@ -109,7 +109,7 @@ export default function StudentsPage() {
   }
 
   return (
-    <Card title="学生管理" className="m-4">
+    <Card title={<span style={{ fontSize: '20px' }}>学生管理</span>} className="m-4">
       <Table<StudentData>
         columns={columns as ColumnType<StudentData>[]}
         dataSource={data}

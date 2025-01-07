@@ -1,6 +1,5 @@
 export interface EvaluationMetric {
-  key: string
-  value: number | string
+  [key: string]: number | string[] | string;
 }
 
 export interface AnalysisData {
@@ -12,6 +11,5 @@ export interface AnalysisData {
 }
 
 export interface AnalysisTrendData {
-  key: string
-  value: AnalysisData[]
+  [key: string]: AnalysisData[];
 }

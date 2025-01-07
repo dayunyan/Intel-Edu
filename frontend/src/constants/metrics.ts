@@ -6,7 +6,7 @@ export const METRIC_GROUPS = {
   },
   knowledge: {
     title: '知识掌握',
-    metrics: ['progress_rate', 'knowledge_master_level'],
+    metrics: ['progress_rate', 'knowledge_master_level', 'knowledge_weak_points', 'knowledge_improvement_suggestions'], //"knowledge_weak_points": ["知识点1", "知识点2", "知识点3"],"knowledge_improvement_suggestions": ["建议1", "建议2", "建议3"],
     summary: 'knowledge_summary'
   },
   problemSolving: {

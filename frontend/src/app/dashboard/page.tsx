@@ -167,9 +167,8 @@ export default function DashboardPage() {
   );
 
   return (
-    <div>
-      <h2 className="text-2xl font-bold mb-6">数据总览</h2>
+    <Card title={<span style={{ fontSize: '20px' }}>数据总览</span>} className="m-4">
       {userRole === 'TEACHER' ? <TeacherDashboard /> : <StudentDashboard />}
-    </div>
+    </Card>
   );
 } 
