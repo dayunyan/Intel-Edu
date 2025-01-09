@@ -8,6 +8,7 @@ import {
   BookOutlined,
   BarChartOutlined,
   LogoutOutlined,
+  RobotOutlined,
 } from '@ant-design/icons';
 
 const { Header, Sider, Content } = Layout;
@@ -53,6 +54,12 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
           message.info('请前往学生管理-选择一个学生查看分析');
         }
       },
+    },
+    {
+      key: 'chat',
+      icon: <RobotOutlined />,
+      label: 'AI 助手',
+      onClick: () => router.push('/chat'),
     },
   ];
 

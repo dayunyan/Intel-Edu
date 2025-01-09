@@ -187,6 +187,7 @@ def init_db(db: Session) -> None:
                 ],
                 questions=[
                     {
+                        "chat_id": 1,
                         "timestamp": question["timestamp"],
                         "student_question": random.choice(question["student_question"]),
                         "ai_response": random.choice(question["ai_response"]),

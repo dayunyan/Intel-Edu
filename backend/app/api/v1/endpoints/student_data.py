@@ -3,7 +3,6 @@ from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.models.student_data import StudentBehavior
-from app.core.auth import oauth2_scheme
 from app.services.student_data_service import StudentDataService
 from app.schemas.student_data import StudentStatistics
 
@@ -13,7 +12,6 @@ router = APIRouter()
 def create_behavior(
     behavior_data: dict,
     db: Session = Depends(get_db),
-    token: str = Depends(oauth2_scheme)
 ):
     behavior = StudentBehavior(
         student_id=behavior_data["student_id"],

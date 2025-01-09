@@ -34,6 +34,7 @@ from .base import Base, TimeStampMixin
 #TODO: 需要根据实际情况修改
 [
     {
+        "chat_id": 1,
         "timestamp": "2024-10-08 10:00:00",
         "student_question": "1+1=?",
         "ai_response": "2",

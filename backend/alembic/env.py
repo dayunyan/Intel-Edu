@@ -3,6 +3,10 @@ from sqlalchemy import engine_from_config
 from sqlalchemy import pool
 from alembic import context
 
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 # 导入所有模型
 from app.models.base import Base
 from app.models.user import User,  Student,Teacher, UserRole, Gender
@@ -11,6 +15,7 @@ from app.models.student_data import StudentBehavior, StudentProgress
 from app.models.classes import Class
 from app.models.analysis import AnalysisResult
 from app.models.scale import TestPaper, TestPaperRecord
+from app.models.chat import Chat
 
 # 这行很重要，确保所有模型都被导入后再设置
 target_metadata = Base.metadata

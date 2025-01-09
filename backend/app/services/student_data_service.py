@@ -1,10 +1,11 @@
 import json
 from sqlalchemy.orm import Session
-from typing import List, Dict
+from typing import Any, List, Dict
 from datetime import datetime, timedelta
 from app.models.student_data import StudentBehavior, StudentProgress
 from app.models.curriculum import Subject, Book, Chapter, Section
 from app.schemas.student_data import BehaviorCreate, ProgressCreate
+from sqlalchemy.orm.attributes import flag_modified
 
 class StudentDataService:
     def __init__(self, db: Session):
@@ -23,7 +24,86 @@ class StudentDataService:
         self.db.commit()
         self.db.refresh(db_progress)
         return db_progress
+    
+    def record_question(self, chat_id: int,student_id: int, question: Dict[str, Any], answer: Dict[str, Any]) -> StudentProgress:
+        try:
+            subject = self.db.query(Subject).filter(Subject.name == answer['subject']).first()
+            book = self.db.query(Book).filter(Book.subject_id == subject.id, Book.name == answer['book']).first()
+            chapter = self.db.query(Chapter).filter(Chapter.book_id == book.id, Chapter.name == answer['chapter']).first()
+            section = self.db.query(Section).filter(Section.chapter_id == chapter.id, Section.name == answer['section']).first()
+            
+            progress = self.db.query(StudentProgress).filter(StudentProgress.student_id == student_id,
+                                                            StudentProgress.subject_id == subject.id,
+                                                            StudentProgress.book_id == book.id,
+                                                            StudentProgress.chapter_id == chapter.id,
+                                                            StudentProgress.section_id == section.id).first()
+            if progress is None:
+                progress = StudentProgress(student_id=student_id,
+                                        subject_id=subject.id,
+                                        book_id=book.id,
+                                        chapter_id=chapter.id,
+                                        section_id=section.id,
+                                        completeness=0,
+                                        duration=0,
+                                        mistakes=[],
+                                        questions=[
+                                            {
+                                                "chat_id": chat_id,
+                                                "timestamp": question['timestamp'],
+                                                "student_question": question['content'],
+                                                "ai_response": answer['content'],
+                                                "history": [],
+                                                "details": {
+                                                    "summary": ""
+                                                }
+                                            }
+                                        ])
+                self.db.add(progress)
+            else:
+                progress = self._update_question(progress,chat_id, question, answer)
+                flag_modified(progress, "questions")
+            self.db.commit()
+            self.db.refresh(progress)
+            return progress
+        except Exception as e:
+            self.db.rollback()
+            print(f"更新失败的消息内容: {progress.questions} \n {str(e)}")
+            raise RuntimeError(f"更新数据库失败：{str(e)}")
+        
 
+    def _update_question(self, progress: StudentProgress, chat_id: int, question: Dict[str, Any], answer: Dict[str, Any]) -> StudentProgress:
+        """
+        更新question
+        """
+        flag = -1
+        for q in progress.questions:
+            if 'chat_id' in q.keys() and q['chat_id'] == chat_id:
+                temp_chat = {
+                    "timestamp": q['timestamp'],
+                    "student_question": q['student_question'],
+                    "ai_response": q['ai_response']
+                }
+                q['history'].append(temp_chat)
+                q['timestamp'] = question['timestamp']
+                q['student_question'] = question['content']
+                q['ai_response'] = answer['content']
+                flag = chat_id
+        if flag == -1:
+            progress.questions.append(
+                {
+                    "chat_id": chat_id,
+                    "timestamp": question['timestamp'],
+                    "student_question": question['content'],
+                    "ai_response": answer['content'],
+                    "history": [],
+                    "details": {
+                        "summary": ""
+                    }
+                }
+            )
+            
+        return progress
+    
     def get_student_statistics_by_time(self, student_id: int, days: int = 30) -> Dict:
         start_date = datetime.now() - timedelta(days=days)
         
