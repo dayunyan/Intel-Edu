@@ -5,6 +5,8 @@ import { Input, Button, List, Avatar, Menu, Dropdown, message } from 'antd';
 import { SendOutlined, RobotOutlined, UserOutlined, DownOutlined, PlusOutlined, AppstoreOutlined, HeartOutlined, PictureOutlined, SearchOutlined, EditOutlined, BookOutlined, BarsOutlined, RobotFilled, MehTwoTone } from '@ant-design/icons';
 import { chatApi } from '@/services/chat';
 import type { Chat, Message } from '@/types/chat';
+import router from 'next/router';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 export default function ChatPage() {
     const [messages, setMessages] = useState<Message[]>([]);
@@ -14,6 +16,8 @@ export default function ChatPage() {
     const [currentChatId, setCurrentChatId] = useState<number | null>(null);
     const [loading, setLoading] = useState(false);
     const [chatHistory, setChatHistory] = useState<Chat[]>([]);
+    const router = useRouter();
+    const searchParams = useSearchParams();
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -105,17 +109,14 @@ export default function ChatPage() {
         });
 
 
-    recentConversationsItems.push({
-        key: 'viewAll',
-        label: '查看全部...',
-        icon: <BarsOutlined />,
-        onClick: () => {
-            // TODO: 实现跳转到历史对话列表页面的功能
-            // router.push('/chat/history');
-            console.log('跳转到历史对话列表页面');
-            return Promise.resolve();
-        }
-    });
+        recentConversationsItems.push({
+            key: 'viewAll',
+            label: '查看全部...',
+            icon: <BarsOutlined />,
+            onClick: async () => {
+                await router.push('/chat/history');
+            }
+        });
 
     const mainMenuItems = [
         {
@@ -187,6 +188,13 @@ export default function ChatPage() {
     const toggleRecentConversations = () => {
         setIsRecentConversationsOpen(!isRecentConversationsOpen);
     };
+
+    useEffect(() => {
+        const chatId = searchParams.get('id');
+        if (chatId) {
+            loadHistoryChat(parseInt(chatId));
+        }
+    }, [searchParams]);
 
     return (
         <div style={{ height: '95vh', display: 'flex', flexDirection: 'column' }}>
