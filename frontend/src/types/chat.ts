@@ -12,16 +12,3 @@ export interface Chat {
   created_at: string;
   updated_at: string;
 }
-
-
-// export interface ChatResponse {
-//   data: Chat;
-//   message: string;
-//   status: number;
-// }
-
-// export interface ChatHistoryResponse {
-//   data: Chat[];
-//   message: string;
-//   status: number;
-// } 

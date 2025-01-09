@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { Input, Button, List, Avatar, Menu, Dropdown, message } from 'antd';
-import { SendOutlined, RobotOutlined, UserOutlined, DownOutlined, PlusOutlined, AppstoreOutlined, HeartOutlined, PictureOutlined, SearchOutlined, EditOutlined, BookOutlined } from '@ant-design/icons';
+import { SendOutlined, RobotOutlined, UserOutlined, DownOutlined, PlusOutlined, AppstoreOutlined, HeartOutlined, PictureOutlined, SearchOutlined, EditOutlined, BookOutlined, BarsOutlined, RobotFilled, MehTwoTone } from '@ant-design/icons';
 import { chatApi } from '@/services/chat';
 import type { Chat, Message } from '@/types/chat';
 
@@ -37,12 +37,16 @@ export default function ChatPage() {
         fetchChatHistory();
     }, []);
 
+    const filterMessages = (msgs: Message[]) => {
+        return msgs.filter(msg => msg.role!== 'system');
+    };
+
     const loadHistoryChat = async (chatId: number) => {
         try {
             setLoading(true);
             const response = await chatApi.getChat(chatId);
             setCurrentChatId(response.data.id);
-            setMessages(response.data.messages);
+            setMessages(filterMessages(response.data.messages));
         } catch (error) {
             message.error('加载对话失败');
         } finally {
@@ -56,7 +60,7 @@ export default function ChatPage() {
             const studentId = parseInt(localStorage.getItem('userId') || '0');
             const response = await chatApi.startChat(studentId);
             setCurrentChatId(response.data.id);
-            setMessages(response.data.messages);
+            setMessages(filterMessages(response.data.messages));
             await fetchChatHistory();
         } catch (error) {
             console.error(error);
@@ -65,10 +69,10 @@ export default function ChatPage() {
             setLoading(false);
         }
     };
-    
+
     const sendMessage = async () => {
-        if (!inputValue.trim() || !currentChatId) return;
-        
+        if (!inputValue.trim() ||!currentChatId) return;
+
         try {
             setLoading(true);
             const newMessage: Message = {
@@ -76,7 +80,7 @@ export default function ChatPage() {
                 role: 'user',
                 content: inputValue.trim()
             };
-            
+
             const response = await chatApi.sendMessage(currentChatId, newMessage);
             setMessages([...messages, newMessage, response.data]);
             setInputValue('');
@@ -87,15 +91,30 @@ export default function ChatPage() {
         }
     };
 
-    const recentConversationsItems = (chatHistory || []).map(chat => {
-        const firstUserMessage = chat.messages.find(msg => msg.role === 'user');
-        // const firstUserMessage = chat.messages[0];
-        return {
-            key: chat.id.toString(),
-            label: firstUserMessage?.content || '新对话',
-            icon: <EditOutlined />,
-            onClick: () => loadHistoryChat(chat.id)
-        };
+    const recentConversationsItems = (chatHistory || [])
+        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+        .slice(0, 5)
+        .map(chat => {
+            const firstUserMessage = chat.messages.find(msg => msg.role === 'user');
+            return {
+                key: chat.id.toString(),
+                label: firstUserMessage?.content || '新对话',
+                icon: <EditOutlined />,
+                onClick: () => loadHistoryChat(chat.id)
+            };
+        });
+
+
+    recentConversationsItems.push({
+        key: 'viewAll',
+        label: '查看全部...',
+        icon: <BarsOutlined />,
+        onClick: () => {
+            // TODO: 实现跳转到历史对话列表页面的功能
+            // router.push('/chat/history');
+            console.log('跳转到历史对话列表页面');
+            return Promise.resolve();
+        }
     });
 
     const mainMenuItems = [
@@ -110,28 +129,47 @@ export default function ChatPage() {
         {
             key:'recentConversations',
             label: (
-                <>
-                    <Button type="link" icon={<DownOutlined />}>
+                <Dropdown
+                    menu={{
+                        items: recentConversationsItems.length > 0 ? recentConversationsItems.map(item => ({
+                            key: item.key,
+                            icon: item.icon,
+                            label: (
+                                <div style={{ 
+                                    maxWidth: '160px', 
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    whiteSpace: 'nowrap'
+                                }}>
+                                    {item.label}
+                                </div>
+                            ),
+                            onClick: item.onClick,
+                        })) : [{
+                            key: 'noHistory',
+                            label: '暂无历史对话',
+                            disabled: true,
+                        }],
+                    }}
+                    trigger={['click']}
+                >
+                    <Button 
+                        type="link" 
+                        icon={<DownOutlined />}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            toggleRecentConversations();
+                        }}
+                    >
                         最近对话
                     </Button>
-                    <Menu>
-                        {recentConversationsItems.length > 0 ? (
-                            recentConversationsItems.map(item => (
-                                <Menu.Item key={item.key} icon={item.icon} onClick={item.onClick}>
-                                    {item.label}
-                                </Menu.Item>
-                            ))
-                        ) : (
-                            <Menu.Item disabled>暂无历史对话</Menu.Item>
-                        )}
-                    </Menu>
-                </>
+                </Dropdown>
             ),
         },
         {
             key:'myAgents',
             label: (
-                <Button type="link" icon={<AppstoreOutlined />}>
+                <Button type="link" icon={<MehTwoTone />}>
                     我的智能体
                 </Button>
             ),
@@ -151,14 +189,22 @@ export default function ChatPage() {
     };
 
     return (
-        <div style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ height: '95vh', display: 'flex', flexDirection: 'column' }}>
             {/* 头部区域 */}
             <div style={{ backgroundColor: '#f0f2f5', padding: '16px', borderBottom: '1px solid #e0e0e0', display: 'flex', justifyContent:'space-between', alignItems: 'center' }}>
                 {/* 左侧菜单图标 */}
-                <Dropdown overlay={() => (
-                        <Menu items={mainMenuItems} onClick={toggleRecentConversations} />
-                    )} placement="bottomLeft">
-                    <div style={{ cursor: 'pointer' }}>
+                <Dropdown 
+                    menu={{ 
+                        items: mainMenuItems, 
+                        onClick: toggleRecentConversations 
+                    }} 
+                    placement="bottomLeft"
+                    trigger={['click']}
+                >
+                    <div style={{ 
+                        cursor: 'pointer',
+                        width: '240px'  // 固定主菜单宽度
+                    }}>
                         <AppstoreOutlined />
                     </div>
                 </Dropdown>
@@ -168,19 +214,53 @@ export default function ChatPage() {
                 </Button>
             </div>
             {/* 消息展示区域 */}
-            <div style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '16px' }}>
-                <div style={{ maxWidth: '600px', width: '100%' }}>
+            <div style={{ flex: 1, height: '100%', display: 'flex', justifyContent: 'center', padding: '16px', overflow: 'hidden' }}>
+                <div style={{ 
+                    maxWidth: '800px', 
+                    width: '100%', 
+                    height: '100%', 
+                    overflowY: 'auto',
+                    display: 'flex',
+                    flexDirection: 'column'
+                }}>
                     <List
                         dataSource={messages}
                         renderItem={msg => (
-                            <List.Item className={`flex border-0 ${msg.role === 'user'? 'justify-end' : 'justify-start'}`}>
-                                <div className={`flex items-start gap-2 max-w-[70%] ${msg.role === 'user'? 'flex-row-reverse' : ''}`}>
-                                    <Avatar icon={msg.role === 'user'? <UserOutlined /> : <RobotOutlined />} />
-                                    <div className={`p-3 rounded-lg ${
-                                        msg.role === 'user'? 'bg-blue-500 text-white' : 'bg-white shadow-sm'
-                                        }`}>
+                            <List.Item style={{ border: 'none', padding: '8px 0' }}>
+                                <div style={{ 
+                                    width: '100%',
+                                    display: 'flex',
+                                    justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start',
+                                    gap: '8px'
+                                }}>
+                                    {msg.role !== 'user' && (
+                                        <Avatar 
+                                            icon={<RobotFilled />}
+                                            style={{ 
+                                                backgroundColor: '#A6A6FA',
+                                                flexShrink: 0
+                                            }}
+                                        />
+                                    )}
+                                    <div style={{
+                                        maxWidth: '70%',
+                                        padding: '10px 12px',
+                                        borderRadius: '4px',
+                                        backgroundColor: msg.role === 'user' ? '#1677ff' : '#E6E6FA',
+                                        color: msg.role === 'user' ? '#fff' : '#000',
+                                        wordBreak: 'break-word'
+                                    }}>
                                         {msg.content}
                                     </div>
+                                    {msg.role === 'user' && (
+                                        <Avatar 
+                                            icon={<UserOutlined />}
+                                            style={{ 
+                                                backgroundColor: '#1677ff',
+                                                flexShrink: 0
+                                            }}
+                                        />
+                                    )}
                                 </div>
                             </List.Item>
                         )}
@@ -190,7 +270,7 @@ export default function ChatPage() {
             </div>
             {/* 输入框和发送按钮区域 */}
             <div style={{ backgroundColor: '#f0f2f5', padding: '16px', borderTop: '1px solid #e0e0e0', display: 'flex', justifyContent: 'center' }}>
-                <div style={{ maxWidth: '600px', width: '100%', display: 'flex', alignItems: 'center', backgroundColor: '#fff', borderRadius: '8px', padding: '4px' }}>
+                <div style={{ maxWidth: '800px', width: '100%', display: 'flex', alignItems: 'center', backgroundColor: '#fff', borderRadius: '8px', padding: '4px' }}>
                     <Input
                         value={inputValue}
                         onChange={e => setInputValue(e.target.value)}
