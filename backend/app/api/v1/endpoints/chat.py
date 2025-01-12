@@ -1,11 +1,13 @@
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile
 from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.services.student_data_service import StudentDataService
 from app.schemas.chat import ChatBase, ChatCreate, ChatUpdate, ChatInDB, MessageBase
 from app.services.chat import ChatService
+import aiofiles
+import os
 
 router = APIRouter()
 
@@ -73,3 +75,33 @@ def get_chat(
     chat_service = ChatService(db)
     chat = chat_service.get_chat_by_id(chat_id)
     return ChatInDB(**chat.to_dict())
+
+# 在 router 定义下方添加配置
+UPLOAD_DIR = "uploads"
+if not os.path.exists(UPLOAD_DIR):
+    os.makedirs(UPLOAD_DIR)
+
+@router.post("/upload-image")
+async def upload_image(file: UploadFile = File(...)):
+    try:
+        # 生成唯一的文件名
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        file_extension = os.path.splitext(file.filename)[1]
+        new_filename = f"{timestamp}{file_extension}"
+        file_path = os.path.join(UPLOAD_DIR, new_filename)
+        
+        # 异步写入文件
+        async with aiofiles.open(file_path, 'wb') as out_file:
+            content = await file.read()
+            await out_file.write(content)
+            
+        # 返回文件访问路径
+        return {
+            "url": f"http://localhost:8000/uploads/{new_filename}",  # 修改为你的实际域名和端口
+            "filename": new_filename
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"上传图片失败: {str(e)}"
+        )

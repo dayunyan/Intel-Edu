@@ -7,12 +7,18 @@ JSON template for chat
     {
         "timestamp": "2024-10-08 10:00:00",
         "role": "user",
-        "content": "1+1=?"
+        "content": "1+1=?",
+        "images": [
+            {
+                "url": "http://localhost:8000/uploads/20241008_100000.jpg",
+                "filename": "20241008_100000.jpg"
+            }
+        ]
     },
     {
         "timestamp": "2024-10-08 10:00:00",
         "role": "assistant",
-        "content": "2"
+        "content": "2",
     }
 ]
 """

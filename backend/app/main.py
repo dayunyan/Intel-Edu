@@ -2,6 +2,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.api.v1.api import api_router
+from fastapi.staticfiles import StaticFiles
+import os
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -21,6 +23,13 @@ app.add_middleware(
 # 注册路由
 app.include_router(api_router, prefix="/api/v1")
 
+# 确保上传目录存在
+UPLOAD_DIR = "uploads"
+if not os.path.exists(UPLOAD_DIR):
+    os.makedirs(UPLOAD_DIR)
+
+# 添加静态文件服务配置
+app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
 
 @app.get("/")
 async def root():

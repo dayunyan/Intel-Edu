@@ -79,13 +79,28 @@ class ChatService:
     def _get_response(self, messages: List[Dict[str, Any]]) -> dict:
         try:
             current_time = datetime.now()
+            
+            # 获取最新的用户消息
+            latest_message = messages[-1]
+            content = latest_message.get('content', '')
+            images = latest_message.get('images', [])
+            
+            # 根据是否包含图片构建不同的提示词
+            if images:
+                image_urls = [img['url'] for img in images]
+                prompt = f"用户发送了以下图片：{image_urls}\n并附带文本消息：{content}\n"
+            else:
+                prompt = f"用户发送了文本消息：{content}\n"
+            
+            # TODO: 调用实际的AI模型处理图文消息
             answer = {
                 'timestamp': current_time,
                 'subject': '数学',
                 'book': '数学教材第3册',
                 'chapter': '第3章',
                 'section': '第2节',
-                'content': '这是一条大模型生成的答案。。。'
+                'content': f'这是一条处理了图片和文本的AI回答。收到的文本是：{content}' + 
+                          (f'，收到的图片数量是：{len(images)}' if images else '')
             }
             return answer
         except Exception as e:

@@ -16,5 +16,12 @@ export const chatApi = {
   
   // 获取单个对话详情
   getChat: (chatId: number) =>
-    api.get<Chat>(`/chat/${chatId}`)
+    api.get<Chat>(`/chat/${chatId}`),
+  
+  uploadImage: (formData: FormData) =>
+    api.post('/chat/upload-image', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    }),
 }; 
