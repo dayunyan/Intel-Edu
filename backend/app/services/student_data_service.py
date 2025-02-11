@@ -139,10 +139,10 @@ class StudentDataService:
             if f'{subjects[p.subject_id]}-{books[p.book_id]}-{chapters[p.chapter_id]}-{sections[p.section_id]}' not in questions:
                 questions[f'{subjects[p.subject_id]}-{books[p.book_id]}-{chapters[p.chapter_id]}-{sections[p.section_id]}'] = []
             for m in p.mistakes:
-                if datetime.strptime(m["timestamp"], '%Y-%m-%d %H:%M:%S') >= start_date:
+                if self._parse_timestamp(m["timestamp"]).strftime('%Y-%m-%d %H:%M:%S') >= start_date.strftime('%Y-%m-%d %H:%M:%S'):
                     mistakes[f'{subjects[p.subject_id]}-{books[p.book_id]}-{chapters[p.chapter_id]}-{sections[p.section_id]}'].append(m)
             for q in p.questions:
-                if datetime.strptime(q["timestamp"], '%Y-%m-%d %H:%M:%S') >= start_date:
+                if self._parse_timestamp(q["timestamp"]).strftime('%Y-%m-%d %H:%M:%S') >= start_date.strftime('%Y-%m-%d %H:%M:%S'):
                     questions[f'{subjects[p.subject_id]}-{books[p.book_id]}-{chapters[p.chapter_id]}-{sections[p.section_id]}'].append(q)
         
 
@@ -196,4 +196,22 @@ class StudentDataService:
                 questions_statistics[key] = 0
             questions_statistics[key] += len(value)
         return questions_statistics
+    
+    def _parse_timestamp(self, timestamp_str: str) -> datetime:
+        """
+        解析不同格式的时间戳字符串
+        """
+        try:
+            # 首先尝试解析ISO格式
+            if 'T' in timestamp_str:
+                # 处理带Z的UTC时间
+                if timestamp_str.endswith('Z'):
+                    timestamp_str = timestamp_str[:-1] + '+00:00'
+                return datetime.fromisoformat(timestamp_str)
+            # 然后尝试解析标准格式
+            return datetime.strptime(timestamp_str, '%Y-%m-%d %H:%M:%S')
+        except Exception as e:
+            print(f"时间解析错误: {timestamp_str}, {str(e)}")
+            # 如果解析失败，返回当前时间
+            return datetime.now()
     

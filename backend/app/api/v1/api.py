@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.api.v1.endpoints import auth, students, classes, student_data, analysis, curriculum, chat
+from app.api.v1.endpoints import auth, students, classes, student_data, analysis, curriculum, chat, agent
 
 api_router = APIRouter()
 
@@ -10,4 +10,4 @@ api_router.include_router(student_data.router, prefix="/student-data", tags=["st
 api_router.include_router(analysis.router, prefix="/analysis", tags=["analysis"])
 api_router.include_router(curriculum.router, prefix="/curriculum", tags=["curriculum"])
 api_router.include_router(chat.router, prefix="/chat", tags=["chat"])
-
+api_router.include_router(agent.router, prefix="/agent", tags=["agent"])

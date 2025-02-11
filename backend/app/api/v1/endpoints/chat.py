@@ -1,28 +1,28 @@
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile
+from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile, Body
 from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.services.student_data_service import StudentDataService
 from app.schemas.chat import ChatBase, ChatCreate, ChatUpdate, ChatInDB, MessageBase
 from app.services.chat import ChatService
-import aiofiles
+from app.services.file_service import FileService
 import os
 
 router = APIRouter()
 
 #TODO: 需要添加角色选项
-@router.post("/start/{student_id}", response_model=ChatInDB, status_code=status.HTTP_201_CREATED)
+@router.post("/start/{student_id}", response_model=ChatInDB)
 async def start_chat(
     student_id: int,
+    chat_data: dict = Body(default={'agent_id': None}),
     db: Session = Depends(get_db)
 ):
     try:
         chat_service = ChatService(db)
-        chat = chat_service.create_chat(student_id)
+        chat = chat_service.create_chat(student_id, chat_data.get('agent_id'))
         return ChatInDB(**chat.to_dict())
     except Exception as e:
-        print(e)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"创建对话失败: {str(e)}"
@@ -76,32 +76,78 @@ def get_chat(
     chat = chat_service.get_chat_by_id(chat_id)
     return ChatInDB(**chat.to_dict())
 
-# 在 router 定义下方添加配置
-UPLOAD_DIR = "uploads"
-if not os.path.exists(UPLOAD_DIR):
-    os.makedirs(UPLOAD_DIR)
 
 @router.post("/upload-image")
 async def upload_image(file: UploadFile = File(...)):
     try:
-        # 生成唯一的文件名
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        file_extension = os.path.splitext(file.filename)[1]
-        new_filename = f"{timestamp}{file_extension}"
-        file_path = os.path.join(UPLOAD_DIR, new_filename)
+        file_service = FileService()
+        file_url = await file_service.save_chat_image(file)
         
-        # 异步写入文件
-        async with aiofiles.open(file_path, 'wb') as out_file:
-            content = await file.read()
-            await out_file.write(content)
+        if not file_url:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="保存文件失败"
+            )
             
-        # 返回文件访问路径
         return {
-            "url": f"http://localhost:8000/uploads/{new_filename}",  # 修改为你的实际域名和端口
-            "filename": new_filename
+            "url": f"http://localhost:8000{file_url}",  # 修改为你的实际域名和端口
+            "filename": os.path.basename(file_url)
         }
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"上传图片失败: {str(e)}"
+        )
+
+@router.get("/agent/{agent_id}/student/{student_id}", response_model=List[ChatInDB])
+async def get_agent_chats(
+    agent_id: int,
+    student_id: int,
+    db: Session = Depends(get_db)
+):
+    try:
+        chat_service = ChatService(db)
+        chats = chat_service.get_chats_by_agent_and_student(agent_id, student_id)
+        return [ChatInDB(**chat.to_dict()) for chat in chats]
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"获取智能体对话记录失败: {str(e)}"
+        )
+
+@router.delete("/{chat_id}", status_code=status.HTTP_200_OK)
+def delete_chat(
+    chat_id: int,
+    db: Session = Depends(get_db)
+):
+    try:
+        chat_service = ChatService(db)
+        chat = chat_service.get_chat_by_id(chat_id)
+        
+        if not chat:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="对话不存在"
+            )
+        
+        # 删除对话中的所有图片
+        file_service = FileService()
+        for message in chat.messages:
+            if 'images' in message:
+                for image in message['images']:
+                    file_service.delete_file(image['url'].replace('http://localhost:8000', ''))
+        
+        # 删除对话记录
+        success = chat_service.delete_chat(chat_id)
+        if not success:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="删除对话失败"
+            )
+            
+        return {"message": "删除成功"}
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"删除对话失败: {str(e)}"
         )

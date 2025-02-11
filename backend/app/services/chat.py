@@ -7,28 +7,27 @@ from app.services.student_data_service import StudentDataService
 from fastapi import HTTPException
 from app.core.formate import serialize_date
 from sqlalchemy.orm.attributes import flag_modified
+from app.services.file_service import FileService
 
 class ChatService:
     def __init__(self, db: Session):
         self.db = db
 
-    def create_chat(self, student_id: int) -> Chat:
+    def create_chat(self, student_id: int, agent_id: int=None) -> Chat:
         current_time = datetime.now()
-        chat = Chat(
-            student_id=student_id,
-            timestamp=current_time,
-            messages=[
-                dict(
-                    timestamp=serialize_date(current_time),
-                    role="system",
-                    content="You are a helpful assistant."
-                )
-            ]
-        )
+        
+        # 创建初始消息
+        initial_messages = [
+            dict(
+                timestamp=serialize_date(current_time),
+                role="system",
+                content="You are a helpful assistant."
+            )
+        ]
         
         # 获取AI响应
-        answer = self._get_response(chat.messages)
-        chat.messages.append(
+        answer = self._get_response(initial_messages)
+        initial_messages.append(
             dict(
                 timestamp=serialize_date(answer['timestamp']),
                 role="assistant",
@@ -36,20 +35,12 @@ class ChatService:
             )
         )
         
-        # 序列化消息列表中的所有时间戳
-        serialized_messages = []
-        for msg in chat.messages:
-            serialized_messages.append({
-                "timestamp": serialize_date(msg['timestamp']),
-                "role": msg['role'],
-                "content": msg['content']
-            })
-        
         # 创建数据库记录
         db_chat = Chat(
-            student_id=chat.student_id,
-            timestamp=chat.timestamp,
-            messages=serialized_messages
+            student_id=student_id,
+            agent_id=agent_id,
+            timestamp=current_time,
+            messages=initial_messages
         )
         
         self.db.add(db_chat)
@@ -129,3 +120,47 @@ class ChatService:
         progress = service.record_question(chat_id, student_id, question, answer)
         
         return
+
+    def get_chats_by_agent_and_student(self, agent_id: int, student_id: int) -> List[Chat]:
+        chats = self.db.query(Chat).filter(
+            Chat.agent_id == agent_id,
+            Chat.student_id == student_id
+        ).order_by(Chat.updated_at.desc()).all()
+        
+        # 确保所有对话都被正确加载
+        for chat in chats:
+            self.db.refresh(chat)
+        
+        return chats
+
+    def delete_chat(self, chat_id: int) -> bool:
+        try:
+            chat = self.get_chat_by_id(chat_id)
+            if chat:
+                self.db.delete(chat)
+                self.db.commit()
+                return True
+            return False
+        except Exception as e:
+            self.db.rollback()
+            raise RuntimeError(f"删除对话失败：{str(e)}")
+
+    def delete_chats_by_agent(self, agent_id: int) -> bool:
+        try:
+            chats = self.db.query(Chat).filter(Chat.agent_id == agent_id).all()
+            
+            # 删除所有对话中的图片
+            file_service = FileService()
+            for chat in chats:
+                for message in chat.messages:
+                    if 'images' in message:
+                        for image in message['images']:
+                            file_service.delete_file(image['url'].replace('http://localhost:8000', ''))
+                
+                self.db.delete(chat)
+                
+            self.db.commit()
+            return True
+        except Exception as e:
+            self.db.rollback()
+            raise RuntimeError(f"删除智能体对话失败：{str(e)}")

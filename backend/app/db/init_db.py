@@ -13,6 +13,8 @@ from app.models.student_data import StudentBehavior, StudentProgress
 from app.models.classes import Class
 from app.models.analysis import AnalysisResult
 from app.models.scale import TestPaper, TestPaperRecord
+from app.models.chat import Chat
+from app.models.agent import AIAgent
 from app.core.auth import get_password_hash
 from app.db.init_const import ANALYSIS_RESULTS, BEHAVIORS, STUDENT_PROGRESS, USERS, TEACHERS, SUBJECTS,CLASSES, STUDENTS, TEST_PAPERS, TEST_PAPER_RECORDS
 
@@ -20,6 +22,8 @@ from app.db.init_const import ANALYSIS_RESULTS, BEHAVIORS, STUDENT_PROGRESS, USE
 def init_db(db: Session) -> None:
     # 按照依赖关系的反序删除表数据
     tables_in_order = [
+        Chat,
+        AIAgent,
         TestPaperRecord,  # 最底层的依赖表先删除
         TestPaper,
         StudentBehavior,

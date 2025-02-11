@@ -29,7 +29,7 @@ if not os.path.exists(UPLOAD_DIR):
     os.makedirs(UPLOAD_DIR)
 
 # 添加静态文件服务配置
-app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
+app.mount("/static", StaticFiles(directory=UPLOAD_DIR), name="static")
 
 @app.get("/")
 async def root():

@@ -15,6 +15,7 @@ from app.models.student_data import StudentBehavior, StudentProgress
 from app.models.classes import Class
 from app.models.analysis import AnalysisResult
 from app.models.scale import TestPaper, TestPaperRecord
+from app.models.agent import AIAgent
 from app.models.chat import Chat
 
 # 这行很重要，确保所有模型都被导入后再设置

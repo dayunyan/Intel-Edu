@@ -8,6 +8,10 @@ import type { Chat, Message } from '@/types/chat';
 import router from 'next/router';
 import { useRouter, useSearchParams } from 'next/navigation';
 import type { RcFile, UploadFile } from 'antd/es/upload/interface';
+import { Agent } from '@/types/agent';
+import { agentApi } from '@/services/agent';
+import { getFullImageUrl } from '@/types/agent';
+import { ChatService } from '@/services/chatService';
 
 export default function ChatPage() {
     const [messages, setMessages] = useState<Message[]>([]);
@@ -21,6 +25,20 @@ export default function ChatPage() {
     const searchParams = useSearchParams();
     const [fileList, setFileList] = useState<UploadFile[]>([]);
     const [uploading, setUploading] = useState(false);
+    const [agents, setAgents] = useState<Agent[]>([]);
+    const [currentAgent, setCurrentAgent] = useState<Agent | null>(null);
+
+    const filterMessages = (msgs: Message[]) => {
+        return msgs.filter(msg => msg.role!== 'system');
+    };
+    // 抽取的聊天服务
+    const chatService = new ChatService({
+        setCurrentAgent,
+        setCurrentChatId,
+        setMessages,
+        setLoading,
+        filterMessages
+    });
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -44,37 +62,41 @@ export default function ChatPage() {
         fetchChatHistory();
     }, []);
 
-    const filterMessages = (msgs: Message[]) => {
-        return msgs.filter(msg => msg.role!== 'system');
+    useEffect(() => {
+        const fetchAgents = async () => {
+          try {
+            const studentId = parseInt(localStorage.getItem('userId') || '0');
+            const response = await agentApi.getAgents(studentId);
+            setAgents(response.data);
+          } catch (error) {
+            message.error('获取智能体列表失败');
+          }
+        };
+        
+        fetchAgents();
+      }, []);
+      
+    // 初始化页面
+    useEffect(() => {
+        const agentId = searchParams.get('agentId');
+        const chatId = searchParams.get('chatId');
+        chatService.initializeChat(agentId, chatId);
+    }, [searchParams]);
+
+    // 选择智能体
+    const selectAgent = async (agentId: number) => {
+        await chatService.selectAgent(agentId);
+    };
+
+    // 开始新对话
+    const startNewChat = async () => {
+        if (currentAgent) {
+            await chatService.createNewChat(currentAgent.id);
+        }
     };
 
     const loadHistoryChat = async (chatId: number) => {
-        try {
-            setLoading(true);
-            const response = await chatApi.getChat(chatId);
-            setCurrentChatId(response.data.id);
-            setMessages(filterMessages(response.data.messages));
-        } catch (error) {
-            message.error('加载对话失败');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const startNewChat = async () => {
-        try {
-            setLoading(true);
-            const studentId = parseInt(localStorage.getItem('userId') || '0');
-            const response = await chatApi.startChat(studentId);
-            setCurrentChatId(response.data.id);
-            setMessages(filterMessages(response.data.messages));
-            await fetchChatHistory();
-        } catch (error) {
-            console.error(error);
-            message.error('创建对话失败');
-        } finally {
-            setLoading(false);
-        }
+        await chatService.loadHistoryChat(chatId);
     };
 
     const sendMessage = async () => {
@@ -130,14 +152,6 @@ export default function ChatPage() {
 
     const mainMenuItems = [
         {
-            key: 'newConversation',
-            label: (
-                <Button type="link" icon={<PlusOutlined />} onClick={startNewChat}>
-                    新对话
-                </Button>
-            ),
-        },
-        {
             key:'recentConversations',
             label: (
                 <Dropdown
@@ -180,9 +194,55 @@ export default function ChatPage() {
         {
             key:'myAgents',
             label: (
-                <Button type="link" icon={<MehOutlined />}>
-                    我的智能体
+              <Dropdown
+                menu={{
+                  items: [
+                    {
+                      key: 'createAgent',
+                      icon: <div style={{
+                        width: '16px',
+                        height: '16px',
+                        backgroundColor: '#a0a0a0',
+                        borderRadius: '12px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}>
+                        <PlusOutlined style={{ color: '#fff' }} />
+                      </div>,
+                      label: '创建智能体',
+                      onClick: () => router.push('/agent/create')
+                    },
+                    ...(agents?.slice(0, 5).map(agent => ({
+                      key: agent.id.toString(),
+                      icon: <Avatar 
+                        src={getFullImageUrl(agent.avatar_url)} 
+                        size={24}
+                        style={{
+                          objectFit: 'cover',
+                          backgroundColor: '#f0f0f0'
+                        }}
+                      />,
+                      label: agent.name,
+                      onClick: () => selectAgent(agent.id)
+                    })) || []),
+                    {
+                      key: 'viewAllAgents',
+                      icon: <BarsOutlined />,
+                      label: '查看全部...',
+                      onClick: () => router.push('/agent/list')
+                    }
+                  ]
+                }}
+                trigger={['click']}
+              >
+                <Button 
+                  type="link" 
+                  icon={<RobotOutlined />}
+                >
+                  我的智能体
                 </Button>
+              </Dropdown>
             ),
         },
         {
@@ -198,13 +258,6 @@ export default function ChatPage() {
     const toggleRecentConversations = () => {
         setIsRecentConversationsOpen(!isRecentConversationsOpen);
     };
-
-    useEffect(() => {
-        const chatId = searchParams.get('id');
-        if (chatId) {
-            loadHistoryChat(parseInt(chatId));
-        }
-    }, [searchParams]);
 
     const handleUpload = async (file: File) => {
         const newFile: UploadFile = {
@@ -291,10 +344,17 @@ export default function ChatPage() {
             marginBottom: '12px',
         }}>
             {message.role !== 'user' && (
-                <Avatar 
-                    icon={<RobotOutlined />} 
-                    style={{ backgroundColor: '#A6A6FA', flexShrink: 0 }}
-                />
+                currentAgent ? (
+                    <Avatar 
+                        src={getFullImageUrl(currentAgent.avatar_url)}
+                        style={{ flexShrink: 0 }}
+                    />
+                ) : (
+                    <Avatar 
+                        icon={<RobotOutlined />} 
+                        style={{ backgroundColor: '#A6A6FA', flexShrink: 0 }}
+                    />
+                )
             )}
             <div style={{ 
                 maxWidth: '70%',
@@ -340,26 +400,53 @@ export default function ChatPage() {
         </div>
     );
 
+    const AgentInfo = () => (
+        <div style={{
+            position: 'absolute',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+        }}>
+            {currentAgent ? (
+                <>
+                    <Avatar 
+                        src={getFullImageUrl(currentAgent.avatar_url)}
+                        size={32}
+                        style={{ objectFit: 'cover' }}
+                    />
+                    <span>{currentAgent.name}</span>
+                </>
+            ) : (
+                <>
+                    <Avatar 
+                        icon={<RobotOutlined />}
+                        size={32}
+                        style={{ backgroundColor: '#A6A6FA' }}
+                    />
+                    <span>我不是AI</span>
+                </>
+            )}
+        </div>
+    )
+
     return (
         <div style={{ height: '95vh', display: 'flex', flexDirection: 'column' }}>
             {/* 头部区域 */}
             <div style={{ backgroundColor: '#f0f2f5', padding: '16px', borderBottom: '1px solid #e0e0e0', display: 'flex', justifyContent:'space-between', alignItems: 'center' }}>
                 {/* 左侧菜单图标 */}
-                <Dropdown 
-                    menu={{ 
-                        items: mainMenuItems, 
-                        onClick: toggleRecentConversations 
-                    }} 
-                    placement="bottomLeft"
-                    trigger={['click']}
-                >
-                    <div style={{ 
-                        cursor: 'pointer',
-                        width: '240px'  // 固定主菜单宽度
-                    }}>
-                        <AppstoreOutlined />
-                    </div>
-                </Dropdown>
+                <Menu
+                    mode="horizontal"
+                    selectable={false}
+                    items={mainMenuItems}
+                    style={{
+                        background: 'transparent',
+                        border: 'none',
+                        position: 'relative'
+                    }}
+                />
+                <AgentInfo />
                 {/* 右侧新对话按钮 */}
                 <Button type="primary" icon={<PlusOutlined />} onClick={startNewChat} loading={loading}>
                     新对话
@@ -380,41 +467,6 @@ export default function ChatPage() {
                         renderItem={msg => (
                             <List.Item style={{ border: 'none', padding: '8px 0' }}>
                                 <MessageItem message={msg} />
-                                {/* <div style={{ 
-                                    width: '100%',
-                                    display: 'flex',
-                                    justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start',
-                                    gap: '8px'
-                                }}>
-                                    {msg.role !== 'user' && (
-                                        <Avatar 
-                                            icon={<RobotFilled />}
-                                            style={{ 
-                                                backgroundColor: '#A6A6FA',
-                                                flexShrink: 0
-                                            }}
-                                        />
-                                    )}
-                                    <div style={{
-                                        maxWidth: '70%',
-                                        padding: '10px 12px',
-                                        borderRadius: '4px',
-                                        backgroundColor: msg.role === 'user' ? '#1677ff' : '#E6E6FA',
-                                        color: msg.role === 'user' ? '#fff' : '#000',
-                                        wordBreak: 'break-word'
-                                    }}>
-                                        {msg.content}
-                                    </div>
-                                    {msg.role === 'user' && (
-                                        <Avatar 
-                                            icon={<UserOutlined />}
-                                            style={{ 
-                                                backgroundColor: '#1677ff',
-                                                flexShrink: 0
-                                            }}
-                                        />
-                                    )}
-                                </div> */}
                             </List.Item>
                         )}
                     />

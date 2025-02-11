@@ -28,6 +28,7 @@ class Chat(Base, TimeStampMixin):
 
     id = Column(Integer, primary_key=True, index=True)
     student_id = Column(Integer, ForeignKey("students.id"))
+    agent_id = Column(Integer, ForeignKey("ai_agents.id"), default=None)
     timestamp = Column(DateTime)
     messages = Column(JSON)
 
@@ -35,6 +36,7 @@ class Chat(Base, TimeStampMixin):
         return {
             "id": self.id,
             "student_id": self.student_id,
+            "agent_id": self.agent_id,
             "timestamp": self.timestamp,
             "messages": self.messages,
             "created_at": self.created_at,

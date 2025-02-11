@@ -14,6 +14,7 @@ class MessageBase(BaseModel):
 
 class ChatBase(BaseModel):
     student_id: int
+    agent_id: Optional[int] = None
     timestamp: datetime
     messages: List[MessageBase]
 

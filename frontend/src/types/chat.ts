@@ -13,6 +13,7 @@ export interface Message {
 export interface Chat {
   id: number;
   student_id: number;
+  agent_id: number | null;
   timestamp: string;
   messages: Message[];
   created_at: string;

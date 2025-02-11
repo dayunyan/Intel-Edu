@@ -1,20 +1,39 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { List, Avatar, Card, Button, message } from 'antd';
+import { List, Avatar, Card, Button, message, Modal } from 'antd';
 import { useRouter } from 'next/navigation';
 import { chatApi } from '@/services/chat';
+import { agentApi } from '@/services/agent';
 import type { Chat } from '@/types/chat';
-import { RobotOutlined, ArrowLeftOutlined } from '@ant-design/icons';
+import type { Agent } from '@/types/agent';
+import { RobotOutlined, ArrowLeftOutlined, DeleteOutlined } from '@ant-design/icons';
+import { getFullImageUrl } from '@/types/agent';
 
 export default function ChatHistoryPage() {
     const router = useRouter();
     const [chatHistory, setChatHistory] = useState<Chat[]>([]);
     const [loading, setLoading] = useState(false);
+    const [agents, setAgents] = useState<{[key: number]: Agent}>({});
 
     useEffect(() => {
         fetchChatHistory();
+        fetchAgents();
     }, []);
+
+    const fetchAgents = async () => {
+        try {
+            const studentId = parseInt(localStorage.getItem('userId') || '0');
+            const response = await agentApi.getAgents(studentId);
+            const agentMap = response.data.reduce((acc: {[key: number]: Agent}, agent: Agent) => {
+                acc[agent.id] = agent;
+                return acc;
+            }, {});
+            setAgents(agentMap);
+        } catch (error) {
+            message.error('获取智能体列表失败');
+        }
+    };
 
     const fetchChatHistory = async () => {
         try {
@@ -33,8 +52,29 @@ export default function ChatHistoryPage() {
         }
     };
 
-    const handleChatClick = (chatId: number) => {
-        router.push(`/chat?id=${chatId}`);
+    const handleChatClick = (chat: Chat) => {
+        const agentId = chat.agent_id;
+        router.push(`/chat?chatId=${chat.id}${agentId ? `&agentId=${agentId}` : ''}`);
+    };
+
+    const handleDeleteChat = async (chatId: number, e: React.MouseEvent) => {
+        e.stopPropagation();
+        Modal.confirm({
+            title: '确认删除',
+            content: '确定要删除这条对话记录吗？',
+            okText: '确定',
+            cancelText: '取消',
+            okButtonProps: { danger: true },
+            onOk: async () => {
+                try {
+                    await chatApi.deleteChat(chatId);
+                    setChatHistory(prev => prev.filter(chat => chat.id !== chatId));
+                    message.success('删除成功');
+                } catch (error) {
+                    message.error('删除失败');
+                }
+            }
+        });
     };
 
     return (
@@ -53,27 +93,45 @@ export default function ChatHistoryPage() {
                 dataSource={chatHistory}
                 renderItem={(chat) => {
                     const firstUserMessage = chat.messages.find(msg => msg.role === 'user');
+                    const agent = chat.agent_id ? agents[chat.agent_id] : null;
                     return (
                         <Card 
                             style={{ marginBottom: '16px', cursor: 'pointer' }}
                             hoverable
-                            onClick={() => handleChatClick(chat.id)}
+                            onClick={() => handleChatClick(chat)}
                         >
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                <Avatar icon={<RobotOutlined />} style={{ backgroundColor: '#1677ff' }} />
-                                <div style={{ flex: 1 }}>
-                                    <div style={{ 
-                                        fontSize: '16px',
-                                        whiteSpace: 'nowrap',
-                                        overflow: 'hidden',
-                                        textOverflow: 'ellipsis'
-                                    }}>
-                                        {firstUserMessage?.content || '新对话'}
-                                    </div>
-                                    <div style={{ fontSize: '12px', color: '#999' }}>
-                                        {new Date(chat.timestamp).toLocaleString()}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', justifyContent: 'space-between' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
+                                    <Avatar
+                                        size={48}
+                                        src={agent?.avatar_url ? getFullImageUrl(agent.avatar_url) : undefined}
+                                        icon={!agent?.avatar_url && <RobotOutlined />}
+                                        style={{ backgroundColor: '#1890ff' }}
+                                    />
+                                    <div style={{ flex: 1 }}>
+                                        <div style={{ 
+                                            fontSize: '16px',
+                                            whiteSpace: 'nowrap',
+                                            overflow: 'hidden',
+                                            textOverflow: 'ellipsis'
+                                        }}>
+                                            {firstUserMessage?.content || '新对话'}
+                                        </div>
+                                        <div style={{ fontSize: '12px', color: '#999' }}>
+                                            {new Date(chat.timestamp).toLocaleString()}
+                                        </div>
                                     </div>
                                 </div>
+                                <DeleteOutlined
+                                    onClick={(e) => handleDeleteChat(chat.id, e)}
+                                    style={{ 
+                                        fontSize: '24px', 
+                                        color: '#ff4d4f',
+                                        backgroundColor: 'rgba(255, 77, 79, 0.1)',
+                                        padding: '8px',
+                                        borderRadius: '50%'
+                                    }}
+                                />
                             </div>
                         </Card>
                     );
