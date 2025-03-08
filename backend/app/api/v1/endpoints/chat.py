@@ -20,7 +20,7 @@ async def start_chat(
 ):
     try:
         chat_service = ChatService(db)
-        chat = chat_service.create_chat(student_id, chat_data.get('agent_id'))
+        chat = await chat_service.create_chat(student_id, chat_data.get('agent_id'))
         return ChatInDB(**chat.to_dict())
     except Exception as e:
         raise HTTPException(
@@ -35,7 +35,7 @@ async def get_student_chat_history(
 ):
     try:
         chat_service = ChatService(db)
-        chats = chat_service.get_chat_by_student_id(student_id)
+        chats = chat_service.get_chats_by_student(student_id)
         if not chats:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -59,8 +59,8 @@ async def send_message(
 ):
     try:
         chat_service = ChatService(db)
-        answer = chat_service.get_answer(chat_id, chat_data.model_dump())
-        return MessageBase(**answer)
+        message = await chat_service.get_answer(chat_id, chat_data.model_dump())
+        return MessageBase(**message)
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -68,7 +68,7 @@ async def send_message(
         )
 
 @router.get("/{chat_id}", response_model=ChatInDB)
-def get_chat(
+async def get_chat(
     chat_id: int,
     db: Session = Depends(get_db),
 ):
@@ -76,22 +76,24 @@ def get_chat(
     chat = chat_service.get_chat_by_id(chat_id)
     return ChatInDB(**chat.to_dict())
 
-
 @router.post("/upload-image")
 async def upload_image(file: UploadFile = File(...)):
     try:
         file_service = FileService()
-        file_url = await file_service.save_chat_image(file)
+        file_path = await file_service.save_file(file)
         
-        if not file_url:
+        # 获取服务器URL
+        server_url = os.getenv("SERVER_URL", "http://localhost:8000")
+        
+        if not file_path:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="保存文件失败"
             )
             
         return {
-            "url": f"http://localhost:8000{file_url}",  # 修改为你的实际域名和端口
-            "filename": os.path.basename(file_url)
+            "url": f"{server_url}{file_path}",  # 修改为你的实际域名和端口
+            "filename": os.path.basename(file_path)
         }
     except Exception as e:
         raise HTTPException(
@@ -116,36 +118,14 @@ async def get_agent_chats(
         )
 
 @router.delete("/{chat_id}", status_code=status.HTTP_200_OK)
-def delete_chat(
+async def delete_chat(
     chat_id: int,
     db: Session = Depends(get_db)
 ):
     try:
         chat_service = ChatService(db)
-        chat = chat_service.get_chat_by_id(chat_id)
-        
-        if not chat:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="对话不存在"
-            )
-        
-        # 删除对话中的所有图片
-        file_service = FileService()
-        for message in chat.messages:
-            if 'images' in message:
-                for image in message['images']:
-                    file_service.delete_file(image['url'].replace('http://localhost:8000', ''))
-        
-        # 删除对话记录
-        success = chat_service.delete_chat(chat_id)
-        if not success:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="删除对话失败"
-            )
-            
-        return {"message": "删除成功"}
+        chat_service.delete_chat(chat_id)
+        return {"message": "对话已删除"}
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

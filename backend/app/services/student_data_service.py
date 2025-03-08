@@ -11,21 +11,21 @@ class StudentDataService:
     def __init__(self, db: Session):
         self.db = db
 
-    def record_behavior(self, behavior: BehaviorCreate) -> StudentBehavior:
+    async def record_behavior(self, behavior: BehaviorCreate) -> StudentBehavior:
         db_behavior = StudentBehavior(**behavior.model_dump())
         self.db.add(db_behavior)
         self.db.commit()
         self.db.refresh(db_behavior)
         return db_behavior
 
-    def record_progress(self, progress: ProgressCreate) -> StudentProgress:
+    async def record_progress(self, progress: ProgressCreate) -> StudentProgress:
         db_progress = StudentProgress(**progress.model_dump())
         self.db.add(db_progress)
         self.db.commit()
         self.db.refresh(db_progress)
         return db_progress
     
-    def record_question(self, chat_id: int,student_id: int, question: Dict[str, Any], answer: Dict[str, Any]) -> StudentProgress:
+    async def record_question(self, chat_id: int,student_id: int, question: Dict[str, Any], answer: Dict[str, Any]) -> StudentProgress:
         try:
             subject = self.db.query(Subject).filter(Subject.name == answer['subject']).first()
             book = self.db.query(Book).filter(Book.subject_id == subject.id, Book.name == answer['book']).first()

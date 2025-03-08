@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     SECRET_KEY: str
     ALGORITHM: str
     ACCESS_TOKEN_EXPIRE_MINUTES: int
+    LLM_SERVER_URL: str
     OPENAI_API_KEY: Optional[str] = None
 
     class Config:
