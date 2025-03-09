@@ -11,7 +11,7 @@ from app.services.file_service import FileService
 from app.services.llm_service import LLMService
 from app.models.agent import AIAgent
 from app.models.user import Student
-
+from app.core.prompt_template import SYSTEM_PROMPT_TEMPLATE_ZH_CHAT
 class ChatService:
     def __init__(self, db: Session):
         self.db = db
@@ -37,7 +37,7 @@ class ChatService:
             dict(
                 timestamp=serialize_date(current_time),
                 role="system",
-                content="你是一个教育辅导助手，你的任务是帮助学生学习和解答问题。"
+                content=SYSTEM_PROMPT_TEMPLATE_ZH_CHAT
             )
         ]
         
@@ -98,7 +98,7 @@ class ChatService:
     def get_chats_by_student(self, student_id: int) -> List[Chat]:
         return self.db.query(Chat).filter(Chat.student_id == student_id).all()
     
-    async def _get_response(self, messages: List[Dict[str, Any]], role_name:str, role_description: str, student_info: Dict[str, Any] = None) -> dict:
+    async def _get_response(self, messages: List[Dict[str, Any]], role_name:str, role_description: str = None, student_info: Dict[str, Any] = None) -> dict:
         try:
             # 获取最新的用户消息
             latest_message = messages[-1]
@@ -123,6 +123,24 @@ class ChatService:
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"获取AI响应失败: {str(e)}")
     
+    async def get_robot_answer(self, chat_data: Dict[str, Any]) -> dict:
+        try:
+            role_name = chat_data.get('role_name', "教育辅导助手")
+            role_description = chat_data.get('role_description', "教育辅导助手")
+            messages = chat_data.get('messages', [])
+            
+            # 调用LLM服务获取回复
+            response = await self._get_response(messages, role_name, role_description)
+            
+            return dict(
+                timestamp=serialize_date(response['timestamp']),
+                role="assistant",
+                content=response['content']
+            )
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"获取AI响应失败: {str(e)}")
+        
+
     async def get_answer(self, chat_id: int, chat_data: Dict[str, Any]) -> dict:
         # 获取chat_id对应的chat
         chat = self.get_chat_by_id(chat_id)
@@ -154,6 +172,7 @@ class ChatService:
         
         # 大模型生成答案
         answer = await self._get_response(chat.messages, role_name, role_description, student_info)
+        print(answer)
         
         # 将答案添加到chat的messages中
         chat.timestamp = answer['timestamp']
@@ -167,7 +186,7 @@ class ChatService:
         chat = self.update_chat(chat)
         
         # 记录进度
-        await self.record_progress(chat_id, chat.student_id, chat_data, answer)
+        # await self.record_progress(chat_id, chat.student_id, chat_data, answer)
         
         return chat.messages[-1]
     

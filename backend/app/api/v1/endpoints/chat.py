@@ -59,6 +59,7 @@ async def send_message(
 ):
     try:
         chat_service = ChatService(db)
+        print(chat_data.model_dump())
         message = await chat_service.get_answer(chat_id, chat_data.model_dump())
         return MessageBase(**message)
     except Exception as e:

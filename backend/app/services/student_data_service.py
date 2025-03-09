@@ -60,7 +60,7 @@ class StudentDataService:
                                         ])
                 self.db.add(progress)
             else:
-                progress = self._update_question(progress,chat_id, question, answer)
+                progress = self._update_question(progress, chat_id, question, answer)
                 flag_modified(progress, "questions")
             self.db.commit()
             self.db.refresh(progress)

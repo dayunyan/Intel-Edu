@@ -96,8 +96,15 @@ class LLMService:
                     raise Exception(f"LLM服务器返回错误: {response.status_code}, {response.text}")
                 
                 result = response.json()
+                if isinstance(result, dict):
+                    if("prompt" in result.keys()):
+                        messages[0]["content"] = result.get("prompt")
+                    result = result.get("answer", "")
+                else:
+                    result = result
+                
                 return {
-                    "content": result.get("choices", [{}])[0].get("message", {}).get("content", ""),
+                    "content": result,
                     "timestamp": datetime.now()
                 }
         except Exception as e:
