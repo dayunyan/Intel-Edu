@@ -129,6 +129,15 @@ class ChatService:
             role_description = chat_data.get('role_description', "教育辅导助手")
             messages = chat_data.get('messages', [])
             
+            initial_messages = [
+                dict(
+                    timestamp=serialize_date(datetime.now()),
+                    role="system",
+                    content=SYSTEM_PROMPT_TEMPLATE_ZH_CHAT
+                )
+            ]
+            messages = initial_messages + messages
+            
             # 调用LLM服务获取回复
             response = await self._get_response(messages, role_name, role_description)
             

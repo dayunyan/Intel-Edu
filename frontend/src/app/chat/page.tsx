@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { MathJaxProvider, MathJaxFormula } from 'mathjax3-react';
 import { Input, Button, List, Avatar, Menu, Dropdown, message, Upload, Progress } from 'antd';
 import { SendOutlined, RobotOutlined, UserOutlined, DownOutlined, PlusOutlined, AppstoreOutlined, HeartOutlined, PictureOutlined, SearchOutlined, EditOutlined, BookOutlined, BarsOutlined, RobotFilled, MehTwoTone, MessageOutlined, MehOutlined } from '@ant-design/icons';
 import { chatApi } from '@/services/chat';
@@ -335,70 +336,85 @@ export default function ChatPage() {
         }
     };
 
-    const MessageItem = ({ message }: { message: Message }) => (
-        <div style={{ 
-            width: '100%',
-            display: 'flex',
-            justifyContent: message.role === 'user' ? 'flex-end' : 'flex-start',
-            gap: '8px',
-            marginBottom: '12px',
-        }}>
-            {message.role !== 'user' && (
-                currentAgent ? (
-                    <Avatar 
-                        src={getFullImageUrl(currentAgent.avatar_url)}
-                        style={{ flexShrink: 0 }}
-                    />
-                ) : (
-                    <Avatar 
-                        icon={<RobotOutlined />} 
-                        style={{ backgroundColor: '#A6A6FA', flexShrink: 0 }}
-                    />
-                )
-            )}
+    const MessageItem = ({ message }: { message: Message }) =>  {
+        const renderContent = (content: string) => {
+            const regex = /\\\((.*?)\\\)/g;
+            const parts = content.split(regex);
+    
+            return parts.map((part, index) => {
+                if (index % 2 === 1) {
+                    return <MathJaxFormula key={index} formula={`$$${part}$$`}></MathJaxFormula>;
+                }
+                return part;
+            });
+        };
+        return (
             <div style={{ 
-                maxWidth: '70%',
-                flexShrink: 1,
+                width: '100%',
+                display: 'flex',
+                justifyContent: message.role === 'user' ? 'flex-end' : 'flex-start',
+                gap: '8px',
+                marginBottom: '12px',
             }}>
-                {message.images && message.images.length > 0 && (
-                    <div style={{ 
-                        display: 'flex', 
-                        flexWrap: 'wrap', 
-                        gap: '8px',
-                        marginBottom: '8px' 
-                    }}>
-                        {message.images.map((img, index) => (
-                            <img 
-                                key={index}
-                                src={img.url}
-                                alt={img.filename}
-                                style={{
-                                    maxWidth: '200px',
-                                    maxHeight: '200px',
-                                    borderRadius: '8px'
-                                }}
-                            />
-                        ))}
-                    </div>
+                {message.role !== 'user' && (
+                    currentAgent ? (
+                        <Avatar 
+                            src={getFullImageUrl(currentAgent.avatar_url)}
+                            style={{ flexShrink: 0 }}
+                        />
+                    ) : (
+                        <Avatar 
+                            icon={<RobotOutlined />} 
+                            style={{ backgroundColor: '#A6A6FA', flexShrink: 0 }}
+                        />
+                    )
                 )}
-                <div style={{
-                    padding: '12px',
-                    backgroundColor: message.role === 'user' ? '#1890ff' : '#f0f2f5',
-                    color: message.role === 'user' ? '#fff' : '#000',
-                    borderRadius: '8px',
-                    wordBreak: 'break-word'
+                <div style={{ 
+                    maxWidth: '70%',
+                    flexShrink: 1,
                 }}>
-                    {message.content}
+                    {message.images && message.images.length > 0 && (
+                        <div style={{ 
+                            display: 'flex', 
+                            flexWrap: 'wrap', 
+                            gap: '8px',
+                            marginBottom: '8px' 
+                        }}>
+                            {message.images.map((img, index) => (
+                                <img 
+                                    key={index}
+                                    src={img.url}
+                                    alt={img.filename}
+                                    style={{
+                                        maxWidth: '200px',
+                                        maxHeight: '200px',
+                                        borderRadius: '8px'
+                                    }}
+                                />
+                            ))}
+                        </div>
+                    )}
+                    <div style={{
+                        padding: '12px',
+                        backgroundColor: message.role === 'user' ? '#1890ff' : '#f0f2f5',
+                        color: message.role === 'user' ? '#fff' : '#000',
+                        borderRadius: '8px',
+                        wordBreak: 'break-word'
+                    }}>
+                        <MathJaxProvider>
+                            {renderContent(message.content)}
+                        </MathJaxProvider>
+                    </div>
                 </div>
+                {message.role === 'user' && (
+                    <Avatar 
+                        icon={<UserOutlined />} 
+                        style={{ backgroundColor: '#1677ff', flexShrink: 0 }}
+                    />
+                )}
             </div>
-            {message.role === 'user' && (
-                <Avatar 
-                    icon={<UserOutlined />} 
-                    style={{ backgroundColor: '#1677ff', flexShrink: 0 }}
-                />
-            )}
-        </div>
-    );
+        );
+    };
 
     const AgentInfo = () => (
         <div style={{

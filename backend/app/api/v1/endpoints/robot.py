@@ -38,8 +38,8 @@ async def robot_voice_interaction(
         chat_service = ChatService(db)
         
         # 获取LLM回复
-        # response = await chat_service.get_robot_answer(chat_data=messages.dict())
-        response = "你好"
+        response = await chat_service.get_robot_answer(chat_data=interaction_data)
+        # response = {"content": f"你好，我是{role_name}，很高兴为你服务！是的，我是{role_name}，你有什么问题可以问我！"}
         # 添加角色信息
         result = {
             "response": response.get("content", ""),

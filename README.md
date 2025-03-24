@@ -103,7 +103,7 @@ cd backend
 python -m venv venv
 source venv/bin/activate # Windows: .\venv\Scripts\activate
 pip install -r requirements.txt
-uvicorn app.main:app --reload
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
 ## API文档
@@ -134,6 +134,7 @@ API文档访问地址：http://localhost:8000/docs
 ## 版本历史
 
 - v0.1.0 项目初始化
+- v1.0.0 项目发布
 
 ## 许可证
 
